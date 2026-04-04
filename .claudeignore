@@ -1,0 +1,62 @@
+# ── DEPENDÊNCIAS E RUNTIME ──────────────────────────────────────────────────
+# Ignora a pasta mais pesada de todas. Nunca deixe a IA ler isso.
+node_modules/
+.pnpm-store/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ── NEXT.JS E BUILDSa ───────────────────────────────────────────────────────
+# Ignora o cache de build que discutimos. Essencial para evitar erros de CSS.
+.next/
+out/
+build/
+dist/
+.cache/
+*.tsbuildinfo
+
+# ── BANCO DE DADOS (PRISMA) ────────────────────────────────────────────────
+# Ignora arquivos binários e o histórico de mudanças (migrations).
+# O Claude continuará lendo o 'schema.prisma' automaticamente.
+prisma/migrations/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+
+# ── CONFIGURAÇÕES DE AMBIENTE E SEGURANÇA ───────────────────────────────────
+# Ignora suas chaves do Stripe, Neon e NextAuth por economia e segurança.
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+
+# ── LOGS E TEMPORÁRIOS ─────────────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+.eslintcache
+
+# ── ASSETS E BINÁRIOS (ECONOMIA DE TOKENS) ─────────────────────────────────
+# A IA não consegue ler o conteúdo de imagens/vídeos. Ignorar economiza muito.
+public/assets/
+public/images/
+public/videos/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.pdf
+*.mp4
+
+# ── IDE E SISTEMA ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
