@@ -5,26 +5,30 @@ import { useRouter } from "next/navigation";
 import { Plus, X, Loader2, Pencil } from "lucide-react";
 
 type Unit = { id: string; name: string };
-type Product = { id: string; name: string; price: number; stock: number; description: string | null; unitId: string };
+type Service = {
+  id: string; name: string; price: number; durationMinutes: number;
+  description: string | null; unitId: string;
+};
 
 interface Props {
   units: Unit[];
-  product?: Product;
+  service?: Service; // se passado, é edição
 }
 
-export function ProductDialog({ units, product }: Props) {
+export function ServiceDialog({ units, service }: Props) {
   const router = useRouter();
-  const isEdit = !!product;
+  const isEdit = !!service;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [form, setForm] = useState({
-    name: product?.name ?? "",
-    price: product?.price?.toString() ?? "",
-    stock: product?.stock?.toString() ?? "",
-    description: product?.description ?? "",
-    unitId: product?.unitId ?? units[0]?.id ?? "",
+    name: service?.name ?? "",
+    price: service?.price?.toString() ?? "",
+    durationMinutes: service?.durationMinutes?.toString() ?? "30",
+    description: service?.description ?? "",
+    unitId: service?.unitId ?? units[0]?.id ?? "",
   });
 
   function set(field: string, value: string) {
@@ -33,7 +37,7 @@ export function ProductDialog({ units, product }: Props) {
 
   function reset() {
     if (!isEdit) {
-      setForm({ name: "", price: "", stock: "", description: "", unitId: units[0]?.id ?? "" });
+      setForm({ name: "", price: "", durationMinutes: "30", description: "", unitId: units[0]?.id ?? "" });
     }
     setError("");
   }
@@ -43,23 +47,28 @@ export function ProductDialog({ units, product }: Props) {
     setLoading(true);
     setError("");
 
-    const res = await fetch(isEdit ? `/api/products/${product!.id}` : "/api/products", {
-      method: isEdit ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name,
-        price: parseFloat(form.price),
-        stock: parseInt(form.stock, 10),
-        description: form.description || undefined,
-        unitId: form.unitId,
-      }),
-    });
+    const body = {
+      name: form.name,
+      price: parseFloat(form.price),
+      durationMinutes: parseInt(form.durationMinutes, 10),
+      description: form.description || undefined,
+      unitId: form.unitId,
+    };
+
+    const res = await fetch(
+      isEdit ? `/api/services/${service!.id}` : "/api/services",
+      {
+        method: isEdit ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }
+    );
 
     const data = await res.json();
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error ?? "Erro ao salvar produto.");
+      setError(data.error ?? "Erro ao salvar serviço.");
       return;
     }
 
@@ -82,7 +91,7 @@ export function ProductDialog({ units, product }: Props) {
           onClick={() => setOpen(true)}
           className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
         >
-          <Plus className="h-4 w-4" /> Novo produto
+          <Plus className="h-4 w-4" /> Novo serviço
         </button>
       )}
 
@@ -90,7 +99,7 @@ export function ProductDialog({ units, product }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b px-5 py-4">
-              <h2 className="font-semibold">{isEdit ? "Editar produto" : "Novo produto"}</h2>
+              <h2 className="font-semibold">{isEdit ? "Editar serviço" : "Novo serviço"}</h2>
               <button onClick={() => { setOpen(false); reset(); }} className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
@@ -98,10 +107,10 @@ export function ProductDialog({ units, product }: Props) {
 
             <form onSubmit={handleSubmit} className="space-y-4 p-5">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Nome do produto</label>
+                <label className="text-sm font-medium">Nome do serviço</label>
                 <input
                   required value={form.name} onChange={(e) => set("name", e.target.value)}
-                  placeholder="Ex: Pomada Modeladora"
+                  placeholder="Ex: Corte + Barba"
                   className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -117,11 +126,11 @@ export function ProductDialog({ units, product }: Props) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Estoque</label>
+                  <label className="text-sm font-medium">Duração (min)</label>
                   <input
-                    type="number" min="0" required
-                    value={form.stock} onChange={(e) => set("stock", e.target.value)}
-                    placeholder="0"
+                    type="number" min="5" step="5" required
+                    value={form.durationMinutes} onChange={(e) => set("durationMinutes", e.target.value)}
+                    placeholder="30"
                     className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -134,7 +143,9 @@ export function ProductDialog({ units, product }: Props) {
                     value={form.unitId} onChange={(e) => set("unitId", e.target.value)}
                     className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    {units.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -143,12 +154,14 @@ export function ProductDialog({ units, product }: Props) {
                 <label className="text-sm font-medium">Descrição <span className="text-muted-foreground">(opcional)</span></label>
                 <textarea
                   rows={2} value={form.description} onChange={(e) => set("description", e.target.value)}
-                  placeholder="Descrição do produto..."
+                  placeholder="Descreva o serviço..."
                   className="w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
-              {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+              {error && (
+                <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+              )}
 
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => { setOpen(false); reset(); }}
@@ -157,7 +170,7 @@ export function ProductDialog({ units, product }: Props) {
                 </button>
                 <button type="submit" disabled={loading}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEdit ? "Salvar" : "Salvar produto")}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isEdit ? "Salvar" : "Criar serviço")}
                 </button>
               </div>
             </form>

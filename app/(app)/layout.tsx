@@ -6,6 +6,7 @@ import { Scissors, LayoutDashboard, Calendar, DollarSign, Package, Users, Settin
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/appointments", label: "Agendamentos", icon: Calendar },
+  { href: "/services", label: "Serviços", icon: Scissors },
   { href: "/finance", label: "Financeiro", icon: DollarSign },
   { href: "/products", label: "Produtos", icon: Package },
   { href: "/team", label: "Equipe", icon: Users },

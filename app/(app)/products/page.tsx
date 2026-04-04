@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Package, AlertTriangle } from "lucide-react";
 import { ProductDialog } from "./product-dialog";
+import { DeleteProductButton } from "./delete-product-button";
 
 function fmt(val: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
@@ -48,7 +49,7 @@ export default async function ProductsPage() {
         ) : (
           <div className="divide-y">
             {allProducts.map((p) => (
-              <div key={p.id} className="flex items-center justify-between px-4 py-3">
+              <div key={p.id} className="flex items-center justify-between gap-4 px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50">
                     <Package className="h-4 w-4 text-blue-600" />
@@ -58,7 +59,7 @@ export default async function ProductsPage() {
                     <p className="text-xs text-muted-foreground">{p.unitName} · {fmt(Number(p.price))}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {p.stock > 0 && p.stock <= 3 && (
                     <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
                       <AlertTriangle className="h-3 w-3" /> Baixo
@@ -66,11 +67,19 @@ export default async function ProductsPage() {
                   )}
                   <span className={`rounded-lg px-3 py-1 text-sm font-semibold ${
                     p.stock === 0 ? "bg-destructive/10 text-destructive" :
-                    p.stock <= 3 ? "bg-amber-50 text-amber-700" :
-                    "bg-emerald-50 text-emerald-700"
+                    p.stock <= 3 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
                   }`}>
                     {p.stock} un.
                   </span>
+                  {canEdit && (
+                    <>
+                      <ProductDialog
+                        units={unitOptions}
+                        product={{ id: p.id, name: p.name, price: Number(p.price), stock: p.stock, description: p.description, unitId: p.unitId }}
+                      />
+                      <DeleteProductButton productId={p.id} />
+                    </>
+                  )}
                 </div>
               </div>
             ))}
