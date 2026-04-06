@@ -16,14 +16,13 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Dados inválidos" }, { status: 422 });
+  if (!parsed.success) return NextResponse.json({ error: "Dados inválidos", fields: parsed.error.flatten().fieldErrors }, { status: 422 });
 
   const { unitId, serviceId, barberId, date, time, name, phone, email } = parsed.data;
 
   const service = await prisma.service.findUnique({ where: { id: serviceId } });
   if (!service) return NextResponse.json({ error: "Serviço não encontrado" }, { status: 404 });
 
-  const [h, m] = time.split(":").map(Number);
   const startsAt = new Date(`${date}T${time}:00`);
   const endsAt = new Date(startsAt.getTime() + service.durationMinutes * 60 * 1000);
 

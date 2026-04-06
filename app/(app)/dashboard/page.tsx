@@ -63,6 +63,12 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/onboarding");
 
+  // Se a org existe mas não tem nenhuma unidade → precisa completar o setup
+  const unitCount = await prisma.unit.count({
+    where: { organizationId: session.user.organizationId },
+  });
+  if (unitCount === 0) redirect("/onboarding");
+
   const data = await getDashboardData(session.user.organizationId);
 
   const stats = [
