@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Scissors, Building2, MapPin, User, Check, ChevronRight, Loader2 } from "lucide-react";
 
 const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
@@ -8,8 +9,18 @@ const DAY_VALUES = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SAT
 
 type Step = 1 | 2 | 3;
 
-export default function OnboardingPage() {
-  const router = useRouter();
+function OnboardingForm() {
+  const searchParams = useSearchParams();
+  const { update } = useSession();
+
+  // When arriving from a Stripe payment success URL (?session_id=...) the JWT
+  // still holds the old pendingPriceId. Refresh it so middleware passes correctly.
+  useEffect(() => {
+    if (searchParams.get("session_id")) {
+      update();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -49,8 +60,15 @@ export default function OnboardingPage() {
           barberEmail: barberEmail || undefined,
         }),
       });
-      if (!res.ok) throw new Error("Erro ao salvar. Tente novamente.");
-      router.push("/dashboard");
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Erro ao salvar. Tente novamente.");
+      }
+      // Refresh JWT so middleware sees the new organizationId, planStatus and hasUnit.
+      // Use hard navigation (not router.push) so the browser sends the updated
+      // cookie on the next request — same pattern used by the login page.
+      await update();
+      window.location.href = "/dashboard";
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro inesperado");
       setLoading(false);
@@ -215,5 +233,13 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingForm />
+    </Suspense>
   );
 }

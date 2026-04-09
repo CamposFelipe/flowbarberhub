@@ -1,0 +1,9 @@
+agent_id,display_name,role,agent_file,specialties,emoji
+analista,Alex — Analista de Sistemas,Systems Analyst & Requirements Engineer,analista.agent.md,"requirements,documentation,user-stories,risk-analysis",📋
+desenvolvedor,Dev — Desenvolvedor Full-Stack,Senior Full-Stack Developer,desenvolvedor.agent.md,"python,nodejs,react,vue,oracle,postgresql,docker,vercel",💻
+qa-testador,Quinn — QA Engineer,Quality Assurance Engineer & Test Specialist,qa-testador.agent.md,"testing,automation,bug-hunting,pytest,jest,playwright",🧪
+code-reviewer,Cris — Code Reviewer,Senior Code Reviewer & Tech Lead,code-reviewer.agent.md,"code-quality,clean-code,solid,architecture,best-practices",🔍
+cyber-security,Sage — Cyber Security Analyst,Application Security Analyst & Compliance Specialist,cyber-security.agent.md,"owasp,sast,threat-modeling,appsec,compliance",🛡️
+pentester,Rex — Penetration Tester,Ethical Hacker & Vulnerability Assessment Specialist,pentester.agent.md,"pentest,ethical-hacking,web-security,api-security,red-team",⚔️
+vuln-fixer,Fix — Vulnerability Remediation Specialist,Security Remediation Engineer,vuln-fixer.agent.md,"remediation,secure-coding,patching,hardening,regression-testing",🔧
+git-deployer,Gita — Git & Documentation Specialist,DevOps Engineer & Technical Documentation Specialist,git-deployer.agent.md,"git,github,conventional-commits,changelog,readme,pull-request,semver,ci-cd",🚀

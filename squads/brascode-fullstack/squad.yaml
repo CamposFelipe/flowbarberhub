@@ -1,0 +1,189 @@
+name: brascode-fullstack
+display_name: BRASCODE Full-Stack Squad
+description: >
+  Time completo de desenvolvimento full-stack da BRASCODE com cobertura
+  de análise, desenvolvimento, QA, code review, segurança e remediação.
+  Suporta dois modos: pipeline completo para novas features e modo
+  individual para tarefas específicas.
+version: 1.0.0
+created_by: Felipe Campos
+created_at: 2026-04-04
+company: BRASCODE
+language: pt-BR
+
+# Stack tecnológico do squad
+stack:
+  backend: [Python, Node.js, Oracle PL/SQL]
+  frontend: [React, Next.js, Vue.js, Nuxt.js]
+  database: [PostgreSQL, MySQL, MongoDB, Oracle DB]
+  devops: [Git, GitHub Actions, Vercel, Docker]
+  testing: [pytest, Jest, Playwright, Cypress]
+  security: [OWASP, Bandit, Semgrep, CVSS]
+
+# ─── MODO 1: Pipeline Completo (Nova Feature) ────────────────────────────────
+pipelines:
+  feature-pipeline:
+    description: Pipeline completo para desenvolvimento de nova feature
+    trigger: "Nova feature, user story ou tarefa de desenvolvimento"
+    steps:
+      - id: checkpoint-input
+        type: checkpoint
+        title: "Definição da Demanda"
+        questions:
+          - question: "Descreva a feature ou tarefa a ser desenvolvida"
+          - question: "Qual é a prioridade? (Crítica / Alta / Normal / Baixa)"
+          - question: "Há algum prazo ou restrição técnica importante?"
+
+      - id: analise
+        agent: analista
+        title: "Análise de Requisitos"
+        description: >
+          Alex analisa a demanda, levanta requisitos funcionais e
+          não-funcionais, cria user stories e identifica riscos.
+        output_file: "outputs/01-analise-requisitos.md"
+
+      - id: checkpoint-analise
+        type: checkpoint
+        title: "Aprovação da Análise"
+        questions:
+          - question: "A análise está correta e completa?"
+          - question: "Há algum requisito a adicionar, corrigir ou remover?"
+
+      - id: desenvolvimento
+        agent: desenvolvedor
+        title: "Implementação"
+        description: >
+          Dev implementa a feature com base nos requisitos aprovados,
+          incluindo código, testes unitários e documentação.
+        depends_on: [analise]
+        output_file: "outputs/02-implementacao.md"
+
+      - id: qa
+        agent: qa-testador
+        title: "QA & Testes"
+        description: >
+          Quinn executa o plano de testes, valida critérios de aceitação
+          e reporta bugs encontrados.
+        depends_on: [desenvolvimento]
+        output_file: "outputs/03-qa-report.md"
+
+      - id: code-review
+        agent: code-reviewer
+        title: "Code Review"
+        description: >
+          Cris revisa o código implementado buscando antipadrões,
+          débito técnico e violações de boas práticas.
+        depends_on: [desenvolvimento]
+        output_file: "outputs/04-code-review.md"
+
+      - id: security-analysis
+        agent: cyber-security
+        title: "Análise de Segurança"
+        description: >
+          Sage analisa o código e a arquitetura em busca de
+          vulnerabilidades de segurança.
+        depends_on: [desenvolvimento]
+        output_file: "outputs/05-security-analysis.md"
+
+      - id: pentest
+        agent: pentester
+        title: "Teste de Penetração"
+        description: >
+          Rex executa testes de penetração para validar as
+          vulnerabilidades identificadas pelo Sage.
+        depends_on: [security-analysis]
+        output_file: "outputs/06-pentest-report.md"
+
+      - id: checkpoint-security
+        type: checkpoint
+        title: "Revisão de Segurança"
+        questions:
+          - question: "Há vulnerabilidades críticas que impedem o deploy?"
+          - question: "Quais issues devem ser corrigidos antes do merge?"
+
+      - id: remediation
+        agent: vuln-fixer
+        title: "Remediação de Vulnerabilidades"
+        description: >
+          Fix implementa as correções necessárias para as vulnerabilidades
+          identificadas pelo Sage e Rex.
+        depends_on: [pentest, security-analysis]
+        condition: "vulnerabilities_found == true"
+        output_file: "outputs/07-remediation.md"
+
+      - id: final-checkpoint
+        type: checkpoint
+        title: "Aprovação Final"
+        questions:
+          - question: "Todos os issues críticos foram resolvidos?"
+          - question: "O código está pronto para merge/deploy?"
+
+      - id: git-deploy
+        agent: git-deployer
+        title: "Commit, Documentação & Pull Request"
+        description: >
+          Gita organiza os commits atômicos seguindo Conventional Commits,
+          atualiza README e CHANGELOG, abre o Pull Request com descrição
+          completa e gera a tag de versão SemVer.
+        depends_on: [remediation, final-checkpoint]
+        output_file: "outputs/08-git-deploy.md"
+
+  # ─── MODO 2: Pipeline de Review de Código Existente ─────────────────────
+  review-pipeline:
+    description: Pipeline para revisão de código existente
+    trigger: "Código existente que precisa de review, QA ou security check"
+    steps:
+      - id: checkpoint-code-input
+        type: checkpoint
+        title: "Código para Revisão"
+        questions:
+          - question: "Cole ou descreva o código a ser revisado"
+          - question: "Qual é o foco principal? (Qualidade / Segurança / Performance / Todos)"
+
+      - id: code-review
+        agent: code-reviewer
+        title: "Code Review"
+        output_file: "outputs/review-01-code-review.md"
+
+      - id: qa-review
+        agent: qa-testador
+        title: "Análise de Qualidade & Testes"
+        output_file: "outputs/review-02-qa.md"
+
+      - id: security-review
+        agent: cyber-security
+        title: "Análise de Segurança"
+        output_file: "outputs/review-03-security.md"
+
+      - id: pentest-review
+        agent: pentester
+        title: "Teste de Penetração"
+        depends_on: [security-review]
+        output_file: "outputs/review-04-pentest.md"
+
+      - id: remediation-review
+        agent: vuln-fixer
+        title: "Remediação"
+        depends_on: [pentest-review, security-review]
+        output_file: "outputs/review-05-remediation.md"
+
+      - id: git-deploy-review
+        agent: git-deployer
+        title: "Commit, Documentação & Pull Request"
+        description: >
+          Gita organiza os commits de correção seguindo Conventional Commits,
+          atualiza documentação afetada e abre o Pull Request com descrição
+          completa das mudanças.
+        depends_on: [remediation-review]
+        output_file: "outputs/review-06-git-deploy.md"
+
+# Modo de execução individual (qualquer agente pode ser chamado diretamente)
+individual_agents:
+  - analista
+  - desenvolvedor
+  - qa-testador
+  - code-reviewer
+  - cyber-security
+  - pentester
+  - vuln-fixer
+  - git-deployer

@@ -109,10 +109,11 @@ model User {
   email          String?   @unique
   emailVerified  DateTime?
   image          String?
-  password       String?   // hashed — used for credentials provider
-  role           Role      @default(BARBER)
-  showAsBarber   Boolean   @default(false) // OWNER can opt into barber list
-  organizationId String?
+  password        String?   // hashed — used for credentials provider
+  role            Role      @default(BARBER)
+  showAsBarber    Boolean   @default(false) // OWNER can opt into barber list
+  organizationId  String?
+  pendingPriceId  String?   // set at registration; cleared after payment or trial activation
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

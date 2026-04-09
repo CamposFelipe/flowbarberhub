@@ -29,22 +29,40 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.unit.findUnique({ where: { slug: unitSlug } });
   if (existing) return NextResponse.json({ error: "Esse link já está em uso. Escolha outro." }, { status: 409 });
 
-  const trialEndsAt = new Date();
-  trialEndsAt.setDate(trialEndsAt.getDate() + 15);
+  // Read fresh state from DB — JWT can be stale after webhook creates org
+  const freshUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { organizationId: true, pendingPriceId: true },
+  });
 
-  const slug = `org-${session.user.id.slice(0, 8)}-${Date.now()}`;
+  const STARTER_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? "";
 
+  try {
   await prisma.$transaction(async (tx) => {
-    // Create or update Organization
-    let org = await tx.organization.findFirst({ where: { id: session.user.organizationId ?? "" } });
+    // Find or create Organization
+    let org = freshUser?.organizationId
+      ? await tx.organization.findUnique({ where: { id: freshUser.organizationId } })
+      : null;
 
     if (!org) {
+      // Determine if this is a paid plan user (webhook may not have fired yet)
+      const isPaidPlan =
+        !!freshUser?.pendingPriceId &&
+        freshUser.pendingPriceId !== STARTER_PRICE_ID;
+
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 15);
+
       org = await tx.organization.create({
         data: {
           name: orgName,
-          slug,
-          trialEndsAt,
-          planStatus: PlanStatus.TRIAL,
+          slug: `org-${session.user.id.slice(0, 8)}-${Date.now()}`,
+          // Paid plan users get ACTIVE status (webhook will upsert subscription later).
+          // Starter users get TRIAL with 15-day window.
+          trialEndsAt: isPaidPlan
+            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+            : trialEndsAt,
+          planStatus: isPaidPlan ? PlanStatus.ACTIVE : PlanStatus.TRIAL,
         },
       });
       await tx.user.update({
@@ -52,7 +70,15 @@ export async function POST(req: NextRequest) {
         data: { organizationId: org.id },
       });
     } else {
+      // Org already exists (created by webhook or trial API) — just update the name
       await tx.organization.update({ where: { id: org.id }, data: { name: orgName } });
+    }
+
+    // Guard: onboarding should only create the first unit.
+    // Prevents unlimited unit creation via repeated onboarding submissions.
+    const existingUnitCount = await tx.unit.count({ where: { organizationId: org.id } });
+    if (existingUnitCount > 0) {
+      throw Object.assign(new Error("Sua primeira unidade já foi cadastrada."), { status: 409 });
     }
 
     // Create Unit with schedules
@@ -74,7 +100,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Optionally create first barber invite (placeholder user)
+    // Optionally create first barber
     if (barberEmail) {
       const barberUser = await tx.user.upsert({
         where: { email: barberEmail },
@@ -96,6 +122,13 @@ export async function POST(req: NextRequest) {
       await tx.barberUnit.create({ data: { barberId: barber.id, unitId: unit.id } });
     }
   });
+  } catch (err: unknown) {
+    const e = err as { status?: number; message?: string };
+    if (e?.status === 409) {
+      return NextResponse.json({ error: e.message }, { status: 409 });
+    }
+    throw err;
+  }
 
   return NextResponse.json({ ok: true });
 }

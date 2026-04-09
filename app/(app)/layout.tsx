@@ -1,21 +1,48 @@
 import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Scissors, LayoutDashboard, Calendar, DollarSign, Package, Users, Settings, LogOut, ChevronDown } from "lucide-react";
+import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import {
+  Scissors, LayoutDashboard, Calendar, DollarSign,
+  Package, Users, Settings, LogOut, MapPin,
+} from "lucide-react";
+import UnitSwitcher from "./unit-switcher";
 
 const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard",    label: "Dashboard",    icon: LayoutDashboard },
   { href: "/appointments", label: "Agendamentos", icon: Calendar },
-  { href: "/services", label: "Serviços", icon: Scissors },
-  { href: "/finance", label: "Financeiro", icon: DollarSign },
-  { href: "/products", label: "Produtos", icon: Package },
-  { href: "/team", label: "Equipe", icon: Users },
-  { href: "/settings", label: "Configurações", icon: Settings },
+  { href: "/services",     label: "Serviços",      icon: Scissors },
+  { href: "/finance",      label: "Financeiro",    icon: DollarSign },
+  { href: "/products",     label: "Produtos",      icon: Package },
+  { href: "/team",         label: "Equipe",        icon: Users },
+  { href: "/settings",     label: "Configurações", icon: Settings },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  // Get fresh org + units from DB
+  const userId = session.user.id;
+  const user = userId
+    ? await prisma.user.findUnique({
+        where: { id: userId },
+        select: { organizationId: true },
+      })
+    : null;
+
+  const units = user?.organizationId
+    ? await prisma.unit.findMany({
+        where: { organizationId: user.organizationId },
+        select: { id: true, name: true, slug: true },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
+
+  // Active unit from cookie (defaults to first)
+  const cookieStore = await cookies();
+  const activeUnitId = cookieStore.get("activeUnitId")?.value ?? units[0]?.id ?? null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -29,6 +56,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <span className="text-base font-bold text-white">FlowBarberHub</span>
         </div>
 
+        {/* Unit Switcher */}
+        {units.length > 0 && (
+          <div className="border-b border-white/10 px-3 py-2">
+            <UnitSwitcher units={units} activeUnitId={activeUnitId} />
+          </div>
+        )}
+
         {/* Nav */}
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
           {NAV.map((item) => (
@@ -41,6 +75,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               {item.label}
             </Link>
           ))}
+          {/* Units management shortcut */}
+          {units.length > 0 && (
+            <Link
+              href="/settings/units"
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <MapPin className="h-4 w-4 shrink-0" />
+              Unidades
+            </Link>
+          )}
         </nav>
 
         {/* User */}

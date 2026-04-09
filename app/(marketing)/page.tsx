@@ -1,4 +1,6 @@
+"use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check, Scissors, BarChart3, Calendar, Package, Users, Zap, Shield, ChevronRight } from "lucide-react";
 
 const PLANS = [
@@ -59,6 +61,13 @@ const FEATURES = [
 ];
 
 export default function LandingPage() {
+  const router = useRouter();
+
+  function handleSelectPlan(priceId: string | null | undefined) {
+    if (!priceId) return;
+    router.push(`/register?plan=${encodeURIComponent(priceId)}`);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* ── Nav ──────────────────────────────────────────────────────────────── */}
@@ -190,19 +199,16 @@ export default function LandingPage() {
                 </ul>
 
                 {plan.priceId ? (
-                  <form action="/api/checkout" method="POST">
-                    <input type="hidden" name="priceId" value={plan.priceId} />
-                    <button
-                      type="submit"
-                      className={`w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
-                        plan.highlight
-                          ? "bg-white text-primary hover:bg-white/90"
-                          : "bg-primary text-white hover:bg-primary/90"
-                      }`}
-                    >
-                      {plan.name === "Starter" ? "Começar grátis" : `Assinar ${plan.name}`}
-                    </button>
-                  </form>
+                  <button
+                    onClick={() => handleSelectPlan(plan.priceId)}
+                    className={`w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
+                      plan.highlight
+                        ? "bg-white text-primary hover:bg-white/90"
+                        : "bg-primary text-white hover:bg-primary/90"
+                    }`}
+                  >
+                    {plan.name === "Starter" ? "Começar grátis" : `Assinar ${plan.name}`}
+                  </button>
                 ) : (
                   <Link
                     href="mailto:contato@flowbarberhub.com.br"

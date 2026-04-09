@@ -25,15 +25,57 @@ export async function POST(req: NextRequest) {
       const priceId = subscription.items.data[0].price.id;
       const userId = session.metadata?.userId;
 
-      // Cria Organization + Subscription para o novo assinante
-      if (userId) {
+      if (!userId) break;
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { organizationId: true },
+      });
+
+      if (!user) break;
+
+      if (user.organizationId) {
+        // ── Existing user renewing (subscribe page after trial expired) ──────────
+        // Activate their existing org and update / create subscription record
+        await prisma.organization.update({
+          where: { id: user.organizationId },
+          data: { planStatus: PlanStatus.ACTIVE },
+        });
+
+        await prisma.subscription.upsert({
+          where: { organizationId: user.organizationId },
+          update: {
+            stripeCustomerId: session.customer as string,
+            stripeSubscriptionId: subscription.id,
+            stripePriceId: priceId,
+            planName: getPlanName(priceId),
+            status: SubscriptionStatus.ACTIVE,
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          },
+          create: {
+            organizationId: user.organizationId,
+            stripeCustomerId: session.customer as string,
+            stripeSubscriptionId: subscription.id,
+            stripePriceId: priceId,
+            planName: getPlanName(priceId),
+            status: SubscriptionStatus.ACTIVE,
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          },
+        });
+
+        await prisma.user.update({
+          where: { id: userId },
+          data: { pendingPriceId: null },
+        });
+      } else {
+        // ── New user — create org and subscription, then clear pendingPriceId ────
         const trialEndsAt = new Date();
         trialEndsAt.setDate(trialEndsAt.getDate() + 15);
 
         const org = await prisma.organization.create({
           data: {
             name: "Minha Barbearia",
-            slug: `org-${userId.slice(0, 8)}`,
+            slug: `org-${userId.slice(0, 8)}-${Date.now()}`,
             trialEndsAt,
             planStatus: PlanStatus.ACTIVE,
             subscription: {
@@ -51,7 +93,10 @@ export async function POST(req: NextRequest) {
 
         await prisma.user.update({
           where: { id: userId },
-          data: { organizationId: org.id },
+          data: {
+            organizationId: org.id,
+            pendingPriceId: null,
+          },
         });
       }
       break;
@@ -69,7 +114,6 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Sincroniza planStatus da Organization
       const subscription = await prisma.subscription.findFirst({ where: { stripeSubscriptionId: sub.id } });
       if (subscription) {
         await prisma.organization.update({

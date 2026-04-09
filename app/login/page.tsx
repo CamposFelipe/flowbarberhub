@@ -1,14 +1,15 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Scissors, Loader2, Eye, EyeOff } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") ?? "/dashboard";
+  const registered = params.get("registered") === "true";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,10 +26,65 @@ export default function LoginPage() {
       setError("E-mail ou senha incorretos.");
       setLoading(false);
     } else {
-      router.push(callbackUrl);
+      // Hard navigation so middleware redirect fires reliably
+      // (router.push can bypass middleware redirects in Next.js 15)
+      window.location.href = callbackUrl;
     }
   }
 
+  return (
+    <>
+      {registered && (
+        <div className="mb-4 rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-4 py-3 text-sm text-emerald-100">
+          Conta criada com sucesso! Faça login para continuar.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-white p-7 shadow-2xl space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">E-mail</label>
+          <input
+            type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="seu@email.com" required autoComplete="email"
+            className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium">Senha</label>
+          <div className="relative">
+            <input
+              type={showPwd ? "text" : "password"} value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••" required autoComplete="current-password"
+              className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button type="button" onClick={() => setShowPwd(!showPwd)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+
+        <button type="submit" disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
+        </button>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Não tem conta?{" "}
+          <Link href="/register" className="font-medium text-primary hover:underline">
+            Comece grátis
+          </Link>
+        </p>
+      </form>
+    </>
+  );
+}
+
+export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[hsl(224,71%,18%)] to-[hsl(221,83%,35%)] p-4">
       <div className="w-full max-w-sm">
@@ -40,46 +96,9 @@ export default function LoginPage() {
           <p className="text-sm text-white/60">Entre na sua conta</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-white p-7 shadow-2xl space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">E-mail</label>
-            <input
-              type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com" required autoComplete="email"
-              className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Senha</label>
-            <div className="relative">
-              <input
-                type={showPwd ? "text" : "password"} value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••" required autoComplete="current-password"
-                className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <button type="button" onClick={() => setShowPwd(!showPwd)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-
-          <button type="submit" disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
-          </button>
-
-          <p className="text-center text-xs text-muted-foreground">
-            Não tem conta?{" "}
-            <Link href="/#planos" className="font-medium text-primary hover:underline">
-              Comece grátis
-            </Link>
-          </p>
-        </form>
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );
